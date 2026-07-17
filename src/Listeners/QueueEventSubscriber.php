@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Watchtower\Agent\Listeners;
 
+use Illuminate\Contracts\Queue\Job;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -30,7 +31,6 @@ class QueueEventSubscriber
         try {
             $this->startedAt[$event->job->uuid() ?? spl_object_hash($event->job)] = microtime(true);
         } catch (Throwable) {
-            // Never hurt the site.
         }
     }
 
@@ -45,7 +45,7 @@ class QueueEventSubscriber
         $this->recordEvent($event->job, 'failed', "{$exceptionClass}: {$event->exception->getMessage()}");
     }
 
-    private function recordEvent(mixed $job, string $status, ?string $exception): void
+    private function recordEvent(Job $job, string $status, ?string $exception): void
     {
         try {
             $key = $job->uuid() ?? spl_object_hash($job);

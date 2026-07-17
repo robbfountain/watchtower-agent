@@ -31,7 +31,6 @@ class ScheduleSubscriber
         try {
             $this->startedAt[$this->key($event->task)] = date('c');
         } catch (Throwable) {
-            // Never hurt the site.
         }
     }
 
@@ -66,7 +65,7 @@ class ScheduleSubscriber
 
     private function key(ScheduledEvent $task): string
     {
-        return $this->commandName($task);
+        return spl_object_hash($task);
     }
 
     private function commandName(ScheduledEvent $task): string
