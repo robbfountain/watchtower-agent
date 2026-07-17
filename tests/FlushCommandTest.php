@@ -69,6 +69,19 @@ it('forgets the batch when the hub returns 422', function () {
     expect(app(Buffer::class)->count())->toBe(0);
 });
 
+it('drains more than one batch per flush', function () {
+    Http::fake(['hub.test/*' => Http::response(['accepted' => true], 202)]);
+    $buffer = app(Buffer::class);
+    foreach (range(1, 1500) as $i) {
+        $buffer->push('log_entry', ['level' => 'warning', 'message' => "m{$i}", 'context' => null, 'logged_at' => date('c')]);
+    }
+
+    $this->artisan('watchtower:flush')->assertSuccessful();
+
+    Http::assertSentCount(2);
+    expect($buffer->count())->toBe(0);
+});
+
 it('flushes request, cache, and notification sections in the wire format', function () {
     Http::fake(['hub.test/*' => Http::response(['accepted' => true], 202)]);
     $buffer = app(Buffer::class);

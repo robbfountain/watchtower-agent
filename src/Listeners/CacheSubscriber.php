@@ -48,7 +48,7 @@ class CacheSubscriber
     {
         try {
             $this->recorder->record('cache_op', [
-                'store' => $store,
+                'store' => mb_substr($store, 0, 100),
                 'op' => $op,
                 'occurred_at' => date('c'),
             ]);

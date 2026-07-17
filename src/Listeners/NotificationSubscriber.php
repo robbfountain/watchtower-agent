@@ -24,7 +24,7 @@ class NotificationSubscriber
     {
         try {
             $this->recorder->record('notification', [
-                'channel' => $event->channel,
+                'channel' => mb_substr((string) $event->channel, 0, 50),
                 'notification' => mb_substr($event->notification::class, 0, 500),
                 'notifiable_type' => $event->notifiable !== null ? $event->notifiable::class : null,
                 'status' => 'sent',
@@ -42,7 +42,7 @@ class NotificationSubscriber
             $error = $this->resolveError($event->data);
 
             $this->recorder->record('notification', [
-                'channel' => $event->channel,
+                'channel' => mb_substr((string) $event->channel, 0, 50),
                 'notification' => mb_substr($event->notification::class, 0, 500),
                 'notifiable_type' => $event->notifiable !== null ? $event->notifiable::class : null,
                 'status' => 'failed',

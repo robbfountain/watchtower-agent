@@ -28,39 +28,51 @@ class FlushCommand extends Command
                 return self::SUCCESS;
             }
 
-            $rows = $buffer->pull(1000);
-            $payload = $builder->build($rows);
+            $totalFlushed = 0;
 
-            $encoded = json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE);
+            for ($iteration = 0; $iteration < 10; $iteration++) {
+                $rows = $buffer->pull(1000);
 
-            if ($encoded === false) {
-                error_log('watchtower-agent: json_encode failed for payload; skipping flush.');
+                if ($rows === []) {
+                    break;
+                }
 
-                return self::SUCCESS;
-            }
+                $payload = $builder->build($rows);
+                $encoded = json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE);
 
-            $response = Http::withToken($token)
-                ->withHeaders(['Content-Encoding' => 'gzip'])
-                ->withBody(gzencode($encoded) ?: '', 'application/json')
-                ->timeout(10)
-                ->post("{$hubUrl}/api/agent/ingest");
+                if ($encoded === false) {
+                    error_log('watchtower-agent: json_encode failed for payload; skipping flush.');
 
-            if ($response->status() === 422) {
+                    break;
+                }
+
+                $response = Http::withToken($token)
+                    ->withHeaders(['Content-Encoding' => 'gzip'])
+                    ->withBody(gzencode($encoded) ?: '', 'application/json')
+                    ->timeout(10)
+                    ->post("{$hubUrl}/api/agent/ingest");
+
+                if ($response->status() === 422) {
+                    $buffer->forget(array_column($rows, 'id'));
+                    error_log('watchtower-agent: hub rejected batch (422): '.substr($response->body(), 0, 500));
+
+                    break;
+                }
+
+                if (! $response->successful()) {
+                    $this->comment("Hub rejected flush ({$response->status()}); keeping buffer.");
+                    error_log("watchtower-agent: flush failed with status {$response->status()}");
+
+                    break;
+                }
+
                 $buffer->forget(array_column($rows, 'id'));
-                error_log('watchtower-agent: hub rejected batch (422): '.substr($response->body(), 0, 500));
-
-                return self::SUCCESS;
+                $totalFlushed += count($rows);
             }
 
-            if (! $response->successful()) {
-                $this->comment("Hub rejected flush ({$response->status()}); keeping buffer.");
-                error_log("watchtower-agent: flush failed with status {$response->status()}");
-
-                return self::SUCCESS;
+            if ($totalFlushed > 0) {
+                $this->info("Flushed {$totalFlushed} buffered events.");
             }
-
-            $buffer->forget(array_column($rows, 'id'));
-            $this->info('Flushed '.count($rows).' buffered events.');
         } catch (Throwable $throwable) {
             error_log("watchtower-agent: flush failed: {$throwable->getMessage()}");
         }
