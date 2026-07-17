@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Watchtower\Agent;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use Monolog\Level;
 use Throwable;
+use Watchtower\Agent\Console\FlushCommand;
 use Watchtower\Agent\Listeners\QueueEventSubscriber;
 use Watchtower\Agent\Listeners\ScheduleSubscriber;
 use Watchtower\Agent\Logging\BufferLogHandler;
@@ -30,6 +32,7 @@ class AgentServiceProvider extends ServiceProvider
 
         $this->app->singleton(Recorder::class);
         $this->app->singleton(ExceptionReporter::class);
+        $this->app->singleton(PayloadBuilder::class);
         $this->app->singleton(QueueEventSubscriber::class);
         $this->app->singleton(ScheduleSubscriber::class);
     }
@@ -42,6 +45,16 @@ class AgentServiceProvider extends ServiceProvider
 
         if (! $this->app['config']->get('watchtower.enabled')) {
             return;
+        }
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([FlushCommand::class]);
+        }
+
+        if ($this->app['config']->get('watchtower.auto_schedule_flush')) {
+            $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+                $schedule->command('watchtower:flush')->everyMinute();
+            });
         }
 
         $events = $this->app['events'];
