@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Watchtower\Agent\Tests\Support;
 
-use Illuminate\Foundation\Application;
 use Watchtower\Agent\Tests\TestCase;
 
 class DisabledTestCase extends TestCase
