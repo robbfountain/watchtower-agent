@@ -11,6 +11,8 @@ use Illuminate\Support\ServiceProvider;
 use Monolog\Level;
 use Throwable;
 use Watchtower\Agent\Console\FlushCommand;
+use Watchtower\Agent\Listeners\CacheSubscriber;
+use Watchtower\Agent\Listeners\NotificationSubscriber;
 use Watchtower\Agent\Listeners\QueueEventSubscriber;
 use Watchtower\Agent\Listeners\ScheduleSubscriber;
 use Watchtower\Agent\Logging\BufferLogHandler;
@@ -35,6 +37,8 @@ class AgentServiceProvider extends ServiceProvider
         $this->app->singleton(PayloadBuilder::class);
         $this->app->singleton(QueueEventSubscriber::class);
         $this->app->singleton(ScheduleSubscriber::class);
+        $this->app->singleton(CacheSubscriber::class);
+        $this->app->singleton(NotificationSubscriber::class);
     }
 
     public function boot(): void
@@ -82,6 +86,14 @@ class AgentServiceProvider extends ServiceProvider
             } catch (Throwable $throwable) {
                 error_log("watchtower-agent: request middleware registration failed: {$throwable->getMessage()}");
             }
+        }
+
+        if ($this->app['config']->get('watchtower.features.cache')) {
+            $events->subscribe(CacheSubscriber::class);
+        }
+
+        if ($this->app['config']->get('watchtower.features.notifications')) {
+            $events->subscribe(NotificationSubscriber::class);
         }
 
         if ($this->app['config']->get('watchtower.features.exceptions')) {

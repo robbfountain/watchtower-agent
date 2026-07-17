@@ -16,6 +16,8 @@ class PayloadBuilder
         $sections = ['job_events' => [], 'log_entries' => [], 'task_runs' => []];
         $exceptionGroups = [];
         $requests = [];
+        $cacheOps = [];
+        $notifications = [];
 
         foreach ($rows as $row) {
             if ($row['payload'] === []) {
@@ -30,6 +32,8 @@ class PayloadBuilder
                     ? $exceptionGroups[$row['payload']['hash']][] = $row['payload']
                     : null,
                 'request' => $requests[] = $row['payload'],
+                'cache_op' => $cacheOps[] = $row['payload'],
+                'notification' => $notifications[] = $row['payload'],
                 default => null,
             };
         }
@@ -76,6 +80,14 @@ class PayloadBuilder
             if ($samples !== []) {
                 $payload['request_samples'] = $samples;
             }
+        }
+
+        if ($cacheOps !== []) {
+            $payload['cache_metrics'] = $this->cacheMetrics($cacheOps);
+        }
+
+        if ($notifications !== []) {
+            $payload['notification_events'] = $notifications;
         }
 
         return $payload;
@@ -163,6 +175,27 @@ class PayloadBuilder
         }
 
         return $samples;
+    }
+
+    /** @param array<int, array> $ops */
+    private function cacheMetrics(array $ops): array
+    {
+        $groups = [];
+
+        foreach ($ops as $op) {
+            $minute = substr($op['occurred_at'], 0, 16).':00'.substr($op['occurred_at'], 19);
+            $key = "{$op['store']}|{$minute}";
+            $groups[$key] ??= ['store' => $op['store'], 'minute' => $minute, 'hits' => 0, 'misses' => 0, 'writes' => 0, 'forgets' => 0];
+            $field = match ($op['op']) {
+                'hit' => 'hits', 'miss' => 'misses', 'write' => 'writes', 'forget' => 'forgets', default => null,
+            };
+
+            if ($field !== null) {
+                $groups[$key][$field]++;
+            }
+        }
+
+        return array_values($groups);
     }
 
     private function schedule(): array
