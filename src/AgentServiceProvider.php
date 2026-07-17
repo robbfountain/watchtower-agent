@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Watchtower\Agent;
 
 use Illuminate\Support\ServiceProvider;
+use Watchtower\Agent\Listeners\QueueEventSubscriber;
+use Watchtower\Agent\Listeners\ScheduleSubscriber;
 
 class AgentServiceProvider extends ServiceProvider
 {
@@ -22,6 +24,8 @@ class AgentServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(Recorder::class);
+        $this->app->singleton(QueueEventSubscriber::class);
+        $this->app->singleton(ScheduleSubscriber::class);
     }
 
     public function boot(): void
@@ -29,5 +33,19 @@ class AgentServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/watchtower.php' => config_path('watchtower.php'),
         ], 'watchtower-config');
+
+        if (! $this->app['config']->get('watchtower.enabled')) {
+            return;
+        }
+
+        $events = $this->app['events'];
+
+        if ($this->app['config']->get('watchtower.features.jobs')) {
+            $events->subscribe(QueueEventSubscriber::class);
+        }
+
+        if ($this->app['config']->get('watchtower.features.schedule')) {
+            $events->subscribe(ScheduleSubscriber::class);
+        }
     }
 }
