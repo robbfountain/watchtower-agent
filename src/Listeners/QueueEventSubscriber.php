@@ -53,11 +53,11 @@ class QueueEventSubscriber
             unset($this->startedAt[$key]);
 
             $this->recorder->record('job_event', [
-                'queue' => $job->getQueue() ?? 'default',
-                'job_class' => $job->resolveName(),
+                'queue' => mb_substr($job->getQueue() ?? 'default', 0, 255),
+                'job_class' => mb_substr($job->resolveName(), 0, 500),
                 'status' => $status,
                 'runtime_ms' => $started !== null ? (int) round((microtime(true) - $started) * 1000) : null,
-                'exception' => $exception,
+                'exception' => $exception !== null ? mb_substr($exception, 0, 65000) : null,
                 'occurred_at' => date('c'),
             ]);
         } catch (Throwable $throwable) {

@@ -22,7 +22,7 @@ class BufferLogHandler extends AbstractProcessingHandler
         try {
             $this->recorder->record('log_entry', [
                 'level' => strtolower($record->level->name),
-                'message' => $record->message,
+                'message' => mb_substr($record->message, 0, 65000),
                 'context' => $record->context !== [] ? $record->context : null,
                 'logged_at' => $record->datetime->format('c'),
             ]);

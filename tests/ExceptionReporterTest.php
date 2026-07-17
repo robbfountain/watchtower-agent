@@ -21,3 +21,11 @@ it('records reported exceptions with a stable hash', function () {
         ->and($rows[0]['payload']['hash'])->toHaveLength(64)
         ->and($rows[0]['payload']['trace'])->toBeArray();
 });
+
+it('truncates oversized exception messages to hub limits', function () {
+    app(ExceptionReporter::class)->report(new RuntimeException(str_repeat('x', 70000)));
+
+    $rows = app(Buffer::class)->pull(10);
+
+    expect(mb_strlen($rows[0]['payload']['message']))->toBeLessThanOrEqual(65000);
+});

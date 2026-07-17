@@ -17,11 +17,17 @@ class PayloadBuilder
         $exceptionGroups = [];
 
         foreach ($rows as $row) {
+            if ($row['payload'] === []) {
+                continue;
+            }
+
             match ($row['type']) {
                 'job_event' => $sections['job_events'][] = $row['payload'],
                 'log_entry' => $sections['log_entries'][] = $row['payload'],
                 'task_run' => $sections['task_runs'][] = $row['payload'],
-                'exception' => $exceptionGroups[$row['payload']['hash']][] = $row['payload'],
+                'exception' => isset($row['payload']['hash'])
+                    ? $exceptionGroups[$row['payload']['hash']][] = $row['payload']
+                    : null,
                 default => null,
             };
         }

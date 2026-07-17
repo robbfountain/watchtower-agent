@@ -59,3 +59,12 @@ it('exits cleanly when hub_url or token is missing', function () {
 
     expect(app(Buffer::class)->count())->toBe(5);
 });
+
+it('forgets the batch when the hub returns 422', function () {
+    Http::fake(['hub.test/*' => Http::response(['message' => 'invalid'], 422)]);
+    seedBuffer();
+
+    $this->artisan('watchtower:flush')->assertSuccessful();
+
+    expect(app(Buffer::class)->count())->toBe(0);
+});

@@ -20,7 +20,7 @@ class Buffer
         $statement = $this->pdo()->prepare(
             'INSERT INTO events (type, payload, created_at) VALUES (?, ?, ?)'
         );
-        $statement->execute([$type, json_encode($payload), date('c')]);
+        $statement->execute([$type, json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE), date('c')]);
 
         $this->enforceCap();
     }
@@ -84,6 +84,8 @@ class Buffer
 
         $this->pdo = new PDO("sqlite:{$this->path}");
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->pdo->exec('PRAGMA busy_timeout = 2000');
+        $this->pdo->exec('PRAGMA journal_mode = WAL');
         $this->pdo->exec('CREATE TABLE IF NOT EXISTS events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             type TEXT NOT NULL,
