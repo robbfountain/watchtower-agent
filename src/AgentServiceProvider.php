@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Watchtower\Agent;
 
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
+use Monolog\Level;
+use Throwable;
 use Watchtower\Agent\Listeners\QueueEventSubscriber;
 use Watchtower\Agent\Listeners\ScheduleSubscriber;
+use Watchtower\Agent\Logging\BufferLogHandler;
 
 class AgentServiceProvider extends ServiceProvider
 {
@@ -24,6 +29,7 @@ class AgentServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(Recorder::class);
+        $this->app->singleton(ExceptionReporter::class);
         $this->app->singleton(QueueEventSubscriber::class);
         $this->app->singleton(ScheduleSubscriber::class);
     }
@@ -46,6 +52,24 @@ class AgentServiceProvider extends ServiceProvider
 
         if ($this->app['config']->get('watchtower.features.schedule')) {
             $events->subscribe(ScheduleSubscriber::class);
+        }
+
+        if ($this->app['config']->get('watchtower.features.logs')) {
+            try {
+                $level = Level::fromName(ucfirst((string) $this->app['config']->get('watchtower.log_level', 'warning')));
+                Log::getLogger()->pushHandler(new BufferLogHandler($this->app->make(Recorder::class), $level));
+            } catch (Throwable $throwable) {
+                error_log("watchtower-agent: log handler registration failed: {$throwable->getMessage()}");
+            }
+        }
+
+        if ($this->app['config']->get('watchtower.features.exceptions')) {
+            $this->callAfterResolving(ExceptionHandler::class, function (ExceptionHandler $handler): void {
+                if (method_exists($handler, 'reportable')) {
+                    $reporter = $this->app->make(ExceptionReporter::class);
+                    $handler->reportable(fn (Throwable $throwable) => $reporter->report($throwable));
+                }
+            });
         }
     }
 }
