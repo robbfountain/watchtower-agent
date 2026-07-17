@@ -15,6 +15,7 @@ class PayloadBuilder
     {
         $sections = ['job_events' => [], 'log_entries' => [], 'task_runs' => []];
         $exceptionGroups = [];
+        $requests = [];
 
         foreach ($rows as $row) {
             if ($row['payload'] === []) {
@@ -28,6 +29,7 @@ class PayloadBuilder
                 'exception' => isset($row['payload']['hash'])
                     ? $exceptionGroups[$row['payload']['hash']][] = $row['payload']
                     : null,
+                'request' => $requests[] = $row['payload'],
                 default => null,
             };
         }
@@ -67,6 +69,15 @@ class PayloadBuilder
             }, $exceptionGroups));
         }
 
+        if ($requests !== []) {
+            $payload['request_metrics'] = $this->requestMetrics($requests);
+            $samples = $this->requestSamples($requests);
+
+            if ($samples !== []) {
+                $payload['request_samples'] = $samples;
+            }
+        }
+
         return $payload;
     }
 
@@ -87,6 +98,71 @@ class PayloadBuilder
         }
 
         return $snapshots;
+    }
+
+    /** @param array<int, array> $requests */
+    private function requestMetrics(array $requests): array
+    {
+        $groups = [];
+
+        foreach ($requests as $request) {
+            $minute = substr($request['occurred_at'], 0, 16).':00'.substr($request['occurred_at'], 19);
+            $key = "{$request['route']}|{$request['method']}|{$minute}";
+            $groups[$key]['route'] = $request['route'];
+            $groups[$key]['method'] = $request['method'];
+            $groups[$key]['minute'] = $minute;
+            $groups[$key]['durations'][] = $request['duration_ms'];
+            $class = intdiv($request['status'], 100);
+            $groups[$key]['classes'][$class] = ($groups[$key]['classes'][$class] ?? 0) + 1;
+        }
+
+        return array_values(array_map(function (array $group): array {
+            sort($group['durations']);
+            $count = count($group['durations']);
+
+            return [
+                'route' => $group['route'],
+                'method' => $group['method'],
+                'minute' => $group['minute'],
+                'count' => $count,
+                'avg_ms' => (int) round(array_sum($group['durations']) / $count),
+                'p95_ms' => $group['durations'][max((int) ceil(0.95 * $count) - 1, 0)],
+                'max_ms' => $group['durations'][$count - 1],
+                'count_2xx' => $group['classes'][2] ?? 0,
+                'count_3xx' => $group['classes'][3] ?? 0,
+                'count_4xx' => $group['classes'][4] ?? 0,
+                'count_5xx' => $group['classes'][5] ?? 0,
+            ];
+        }, $groups));
+    }
+
+    /** @param array<int, array> $requests */
+    private function requestSamples(array $requests): array
+    {
+        $threshold = (int) config('watchtower.slow_threshold_ms', 1000);
+        $samples = [];
+
+        foreach ($requests as $request) {
+            $isError = $request['status'] >= 400;
+            $isSlow = $request['duration_ms'] >= $threshold;
+
+            if (! $isError && ! $isSlow) {
+                continue;
+            }
+
+            $samples[] = [
+                'route' => $request['route'],
+                'url' => $request['url'],
+                'method' => $request['method'],
+                'status' => $request['status'],
+                'duration_ms' => $request['duration_ms'],
+                'memory_kb' => $request['memory_kb'] ?? null,
+                'type' => $isError ? 'error' : 'slow',
+                'occurred_at' => $request['occurred_at'],
+            ];
+        }
+
+        return $samples;
     }
 
     private function schedule(): array

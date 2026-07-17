@@ -17,6 +17,10 @@ return [
         'exceptions' => true,
         'logs' => true,
         'schedule' => true,
+        'requests' => true,
+        'cache' => true,
+        'notifications' => true,
     ],
+    'slow_threshold_ms' => (int) env('WATCHTOWER_SLOW_THRESHOLD_MS', 1000),
     'auto_schedule_flush' => true,
 ];

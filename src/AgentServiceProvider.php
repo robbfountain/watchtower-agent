@@ -76,6 +76,14 @@ class AgentServiceProvider extends ServiceProvider
             }
         }
 
+        if ($this->app['config']->get('watchtower.features.requests')) {
+            try {
+                $this->app[\Illuminate\Contracts\Http\Kernel::class]->pushMiddleware(Http\RecordRequest::class);
+            } catch (Throwable $throwable) {
+                error_log("watchtower-agent: request middleware registration failed: {$throwable->getMessage()}");
+            }
+        }
+
         if ($this->app['config']->get('watchtower.features.exceptions')) {
             $this->callAfterResolving(ExceptionHandler::class, function (ExceptionHandler $handler): void {
                 if (method_exists($handler, 'reportable')) {
