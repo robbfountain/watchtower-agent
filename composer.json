@@ -1,0 +1,29 @@
+{
+    "name": "131studios/watchtower-agent",
+    "description": "Watchtower monitoring agent for Laravel sites",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.0",
+        "ext-pdo_sqlite": "*"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {"Watchtower\\Agent\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Watchtower\\Agent\\Tests\\": "tests/"}
+    },
+    "extra": {
+        "laravel": {"providers": ["Watchtower\\Agent\\AgentServiceProvider"]}
+    },
+    "config": {
+        "allow-plugins": {"pestphp/pest-plugin": true}
+    },
+    "minimum-stability": "stable"
+}
