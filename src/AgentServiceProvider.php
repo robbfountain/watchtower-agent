@@ -19,7 +19,7 @@ use Watchtower\Agent\Logging\BufferLogHandler;
 
 class AgentServiceProvider extends ServiceProvider
 {
-    public const VERSION = '0.1.0';
+    public const VERSION = '0.2.0';
 
     public function register(): void
     {

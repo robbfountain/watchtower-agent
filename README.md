@@ -43,6 +43,10 @@ The flush command registers itself on Laravel's scheduler automatically every mi
 | `features.exceptions` | n/a | `true` | Capture exceptions via the exception handler. |
 | `features.logs` | n/a | `true` | Capture log entries at or above `log_level`. |
 | `features.schedule` | n/a | `true` | Capture scheduled task runs. |
+| `features.requests` | n/a | `true` | Capture HTTP request metrics and slow requests. |
+| `features.cache` | n/a | `true` | Capture cache operations and hits/misses. |
+| `features.notifications` | n/a | `true` | Capture notification send events and delivery status. |
+| `slow_threshold_ms` | `WATCHTOWER_SLOW_THRESHOLD_MS` | `1000` | Request duration threshold (milliseconds) for marking as slow. |
 | `auto_schedule_flush` | n/a | `true` | Register the flush command on the scheduler automatically. |
 
 ## Never-Hurt-the-Site Guarantee

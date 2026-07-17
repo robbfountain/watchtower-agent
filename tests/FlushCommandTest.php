@@ -27,7 +27,7 @@ it('flushes the buffer to the hub and clears it on success', function () {
         return $request->url() === 'https://hub.test/api/agent/ingest'
             && $request->hasHeader('Authorization', 'Bearer test-token')
             && $request->hasHeader('Content-Encoding', 'gzip')
-            && $payload['heartbeat']['agent_version'] === '0.1.0'
+            && $payload['heartbeat']['agent_version'] === '0.2.0'
             && count($payload['job_events']) === 1
             && count($payload['exceptions']) === 1
             && $payload['exceptions'][0]['count'] === 2
@@ -65,6 +65,28 @@ it('forgets the batch when the hub returns 422', function () {
     seedBuffer();
 
     $this->artisan('watchtower:flush')->assertSuccessful();
+
+    expect(app(Buffer::class)->count())->toBe(0);
+});
+
+it('flushes request, cache, and notification sections in the wire format', function () {
+    Http::fake(['hub.test/*' => Http::response(['accepted' => true], 202)]);
+    $buffer = app(Buffer::class);
+    $buffer->push('request', ['route' => 'GET /a', 'url' => '/a', 'method' => 'GET', 'status' => 500, 'duration_ms' => 2000, 'memory_kb' => 1024, 'occurred_at' => '2026-07-17T12:00:01+00:00']);
+    $buffer->push('cache_op', ['store' => 'redis', 'op' => 'hit', 'occurred_at' => '2026-07-17T12:00:01+00:00']);
+    $buffer->push('notification', ['channel' => 'mail', 'notification' => 'App\\Notifications\\X', 'notifiable_type' => 'App\\Models\\User', 'status' => 'failed', 'error' => 'smtp down', 'occurred_at' => '2026-07-17T12:00:01+00:00']);
+
+    $this->artisan('watchtower:flush')->assertSuccessful();
+
+    Http::assertSent(function ($request) {
+        $payload = json_decode(gzdecode($request->body()), true);
+
+        return $payload['heartbeat']['agent_version'] === '0.2.0'
+            && $payload['request_metrics'][0]['count'] === 1
+            && $payload['request_samples'][0]['type'] === 'error'
+            && $payload['cache_metrics'][0]['hits'] === 1
+            && $payload['notification_events'][0]['status'] === 'failed';
+    });
 
     expect(app(Buffer::class)->count())->toBe(0);
 });
