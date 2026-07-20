@@ -37,19 +37,24 @@ class DatabaseSealer
                     continue;
                 }
 
-                $credential = [
-                    'host' => (string) ($connection['host'] ?? '127.0.0.1'),
-                    'port' => (int) ($connection['port'] ?? 3306),
-                    'database' => (string) ($connection['database'] ?? ''),
-                    'username' => (string) ($connection['username'] ?? ''),
-                    'password' => (string) ($connection['password'] ?? ''),
-                ];
+                try {
+                    $credential = [
+                        'host' => (string) ($connection['host'] ?? '127.0.0.1'),
+                        'port' => (int) ($connection['port'] ?? 3306),
+                        'database' => (string) ($connection['database'] ?? ''),
+                        'username' => (string) ($connection['username'] ?? ''),
+                        'password' => (string) ($connection['password'] ?? ''),
+                    ];
 
-                if ($credential['database'] === '') {
-                    continue;
+                    if ($credential['database'] === '') {
+                        continue;
+                    }
+
+                    $encoded = json_encode($credential, JSON_THROW_ON_ERROR);
+                    $blobs[] = base64_encode(sodium_crypto_box_seal($encoded, $publicKeyRaw));
+                } catch (Throwable $throwable) {
+                    error_log("watchtower-agent: failed to seal connection credential: {$throwable->getMessage()}");
                 }
-
-                $blobs[] = base64_encode(sodium_crypto_box_seal(json_encode($credential), $publicKeyRaw));
             }
 
             return $blobs;

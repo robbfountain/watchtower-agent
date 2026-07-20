@@ -36,3 +36,25 @@ it('skips non-mysql connections', function () {
 
     expect(app(DatabaseSealer::class)->sealed())->toBe([]);
 });
+
+it('seals the valid connection and skips the malformed one when two connections are configured', function () {
+    $keypair = sodium_crypto_box_keypair();
+    config()->set('watchtower.sealing_public_key', base64_encode(sodium_crypto_box_publickey($keypair)));
+    config()->set('database.connections.mysql', [
+        'driver' => 'mysql', 'host' => '127.0.0.1', 'port' => 3306,
+        'database' => 'shop', 'username' => 'shopuser', 'password' => 'pw',
+    ]);
+    // Invalid UTF-8 byte sequence in the password will cause json_encode to throw.
+    config()->set('database.connections.broken', [
+        'driver' => 'mysql', 'host' => '127.0.0.1', 'port' => 3306,
+        'database' => 'broken', 'username' => 'u', 'password' => "\xB1\x31",
+    ]);
+    config()->set('watchtower.database_connections', ['mysql', 'broken']);
+
+    $blobs = app(DatabaseSealer::class)->sealed();
+
+    expect($blobs)->toHaveCount(1);
+
+    $opened = json_decode(sodium_crypto_box_seal_open(base64_decode($blobs[0]), $keypair), true);
+    expect($opened['database'])->toBe('shop');
+});
