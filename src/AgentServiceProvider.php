@@ -19,7 +19,7 @@ use Watchtower\Agent\Logging\BufferLogHandler;
 
 class AgentServiceProvider extends ServiceProvider
 {
-    public const VERSION = '0.2.0';
+    public const VERSION = '0.3.0';
 
     public function register(): void
     {
@@ -35,6 +35,7 @@ class AgentServiceProvider extends ServiceProvider
         $this->app->singleton(Recorder::class);
         $this->app->singleton(ExceptionReporter::class);
         $this->app->singleton(PayloadBuilder::class);
+        $this->app->singleton(DatabaseSealer::class);
         $this->app->singleton(QueueEventSubscriber::class);
         $this->app->singleton(ScheduleSubscriber::class);
         $this->app->singleton(CacheSubscriber::class);

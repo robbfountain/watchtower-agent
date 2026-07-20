@@ -23,4 +23,7 @@ return [
     ],
     'slow_threshold_ms' => (int) env('WATCHTOWER_SLOW_THRESHOLD_MS', 1000),
     'auto_schedule_flush' => true,
+    'sealing_public_key' => env('WATCHTOWER_SEALING_PUBLIC_KEY'),
+    'report_databases' => (bool) env('WATCHTOWER_REPORT_DATABASES', true),
+    'database_connections' => ['mysql'],
 ];

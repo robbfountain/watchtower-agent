@@ -48,6 +48,21 @@ The flush command registers itself on Laravel's scheduler automatically every mi
 | `features.notifications` | n/a | `true` | Capture notification send events and delivery status. |
 | `slow_threshold_ms` | `WATCHTOWER_SLOW_THRESHOLD_MS` | `1000` | Request duration threshold (milliseconds) for marking as slow. |
 | `auto_schedule_flush` | n/a | `true` | Register the flush command on the scheduler automatically. |
+| `sealing_public_key` | `WATCHTOWER_SEALING_PUBLIC_KEY` | `null` | Hub public key (base64) for sealing database credentials. Obtain from the hub Databases page. |
+| `report_databases` | `WATCHTOWER_REPORT_DATABASES` | `true` | Set to `false` to disable sealed database credential reporting entirely. |
+| `database_connections` | n/a | `['mysql']` | List of named database connections whose credentials will be sealed and reported. |
+
+## Database Discovery
+
+When `WATCHTOWER_SEALING_PUBLIC_KEY` is set, the agent seals each configured MySQL connection's credentials (host, port, database name, username, password) using libsodium `crypto_box_seal` with the hub's public key. The sealed blobs are included in every flush. Only the hub can decrypt them using its paired private key. Credentials never leave the site in plaintext.
+
+To enable, copy the sealing public key from the hub's Databases page and add it to your site's `.env`:
+
+```env
+WATCHTOWER_SEALING_PUBLIC_KEY=<base64-key-from-hub-databases-page>
+```
+
+If no key is configured, or if `WATCHTOWER_REPORT_DATABASES=false`, the databases section is omitted entirely from the flush payload. Sealing failures degrade gracefully to an `error_log` entry and never interrupt the flush or the application.
 
 ## Never-Hurt-the-Site Guarantee
 

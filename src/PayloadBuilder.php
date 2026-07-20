@@ -90,6 +90,12 @@ class PayloadBuilder
             $payload['notification_events'] = $notifications;
         }
 
+        $databases = app(DatabaseSealer::class)->sealed();
+
+        if ($databases !== []) {
+            $payload['databases'] = $databases;
+        }
+
         return $payload;
     }
 

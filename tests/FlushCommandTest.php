@@ -27,7 +27,7 @@ it('flushes the buffer to the hub and clears it on success', function () {
         return $request->url() === 'https://hub.test/api/agent/ingest'
             && $request->hasHeader('Authorization', 'Bearer test-token')
             && $request->hasHeader('Content-Encoding', 'gzip')
-            && $payload['heartbeat']['agent_version'] === '0.2.0'
+            && $payload['heartbeat']['agent_version'] === '0.3.0'
             && count($payload['job_events']) === 1
             && count($payload['exceptions']) === 1
             && $payload['exceptions'][0]['count'] === 2
@@ -82,6 +82,24 @@ it('drains more than one batch per flush', function () {
     expect($buffer->count())->toBe(0);
 });
 
+it('includes sealed database blobs in the flush when configured', function () {
+    Http::fake(['hub.test/*' => Http::response(['accepted' => true], 202)]);
+    config()->set('watchtower.sealing_public_key', base64_encode(sodium_crypto_box_publickey(sodium_crypto_box_keypair())));
+    config()->set('database.connections.mysql', ['driver' => 'mysql', 'host' => '127.0.0.1', 'port' => 3306, 'database' => 'shop', 'username' => 'u', 'password' => 'p']);
+    config()->set('watchtower.database_connections', ['mysql']);
+    app(Buffer::class)->push('log_entry', ['level' => 'warning', 'message' => 'x', 'context' => null, 'logged_at' => date('c')]);
+
+    $this->artisan('watchtower:flush')->assertSuccessful();
+
+    Http::assertSent(function ($request) {
+        $payload = json_decode(gzdecode($request->body()), true);
+
+        return $payload['heartbeat']['agent_version'] === '0.3.0'
+            && isset($payload['databases'])
+            && count($payload['databases']) === 1;
+    });
+});
+
 it('flushes request, cache, and notification sections in the wire format', function () {
     Http::fake(['hub.test/*' => Http::response(['accepted' => true], 202)]);
     $buffer = app(Buffer::class);
@@ -94,7 +112,7 @@ it('flushes request, cache, and notification sections in the wire format', funct
     Http::assertSent(function ($request) {
         $payload = json_decode(gzdecode($request->body()), true);
 
-        return $payload['heartbeat']['agent_version'] === '0.2.0'
+        return $payload['heartbeat']['agent_version'] === '0.3.0'
             && $payload['request_metrics'][0]['count'] === 1
             && $payload['request_samples'][0]['type'] === 'error'
             && $payload['cache_metrics'][0]['hits'] === 1
