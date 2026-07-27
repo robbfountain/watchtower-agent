@@ -11,6 +11,7 @@ use Illuminate\Support\ServiceProvider;
 use Monolog\Level;
 use Throwable;
 use Watchtower\Agent\Console\FlushCommand;
+use Watchtower\Agent\Console\TestExceptionCommand;
 use Watchtower\Agent\Listeners\CacheSubscriber;
 use Watchtower\Agent\Listeners\NotificationSubscriber;
 use Watchtower\Agent\Listeners\QueueEventSubscriber;
@@ -53,7 +54,7 @@ class AgentServiceProvider extends ServiceProvider
         }
 
         if ($this->app->runningInConsole()) {
-            $this->commands([FlushCommand::class]);
+            $this->commands([FlushCommand::class, TestExceptionCommand::class]);
         }
 
         if ($this->app['config']->get('watchtower.auto_schedule_flush')) {
