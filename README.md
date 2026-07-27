@@ -62,6 +62,8 @@ To enable, copy the sealing public key from the hub's Databases page and add it 
 WATCHTOWER_SEALING_PUBLIC_KEY=<base64-key-from-hub-databases-page>
 ```
 
+The agent only reports a connection it can actually open. Before sealing, it verifies the connection with a live `getPdo()` check, so a site that has no database (for example a flat-file Statamic site whose `DB_*` values fall back to Laravel's `laravel` default) reports nothing instead of a phantom entry. Unreachable connections are skipped with an `error_log` note.
+
 If no key is configured, or if `WATCHTOWER_REPORT_DATABASES=false`, the databases section is omitted entirely from the flush payload. Sealing failures degrade gracefully to an `error_log` entry and never interrupt the flush or the application.
 
 ## Never-Hurt-the-Site Guarantee
