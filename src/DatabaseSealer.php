@@ -8,6 +8,15 @@ use Throwable;
 
 class DatabaseSealer
 {
+    /** @var (callable(string): bool)|null */
+    private $connectionTester;
+
+    /** @param (callable(string): bool)|null $connectionTester */
+    public function __construct(?callable $connectionTester = null)
+    {
+        $this->connectionTester = $connectionTester;
+    }
+
     /** @return array<int, string> */
     public function sealed(): array
     {
@@ -50,6 +59,10 @@ class DatabaseSealer
                         continue;
                     }
 
+                    if (! $this->canConnect($name)) {
+                        continue;
+                    }
+
                     $encoded = json_encode($credential, JSON_THROW_ON_ERROR);
                     $blobs[] = base64_encode(sodium_crypto_box_seal($encoded, $publicKeyRaw));
                 } catch (Throwable $throwable) {
@@ -62,6 +75,23 @@ class DatabaseSealer
             error_log("watchtower-agent: database sealing failed: {$throwable->getMessage()}");
 
             return [];
+        }
+    }
+
+    private function canConnect(string $name): bool
+    {
+        if ($this->connectionTester !== null) {
+            return ($this->connectionTester)($name);
+        }
+
+        try {
+            app('db')->connection($name)->getPdo();
+
+            return true;
+        } catch (Throwable $throwable) {
+            error_log("watchtower-agent: skipping unreachable database connection '{$name}': {$throwable->getMessage()}");
+
+            return false;
         }
     }
 }

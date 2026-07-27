@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Http;
 use Watchtower\Agent\Buffer;
+use Watchtower\Agent\DatabaseSealer;
 
 function seedBuffer(): void
 {
@@ -84,6 +85,7 @@ it('drains more than one batch per flush', function () {
 
 it('includes sealed database blobs in the flush when configured', function () {
     Http::fake(['hub.test/*' => Http::response(['accepted' => true], 202)]);
+    $this->app->instance(DatabaseSealer::class, new DatabaseSealer(fn (string $name): bool => true));
     config()->set('watchtower.sealing_public_key', base64_encode(sodium_crypto_box_publickey(sodium_crypto_box_keypair())));
     config()->set('database.connections.mysql', ['driver' => 'mysql', 'host' => '127.0.0.1', 'port' => 3306, 'database' => 'shop', 'username' => 'u', 'password' => 'p']);
     config()->set('watchtower.database_connections', ['mysql']);
