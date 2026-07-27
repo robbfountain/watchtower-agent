@@ -106,4 +106,12 @@ To verify the full wire from a scratch Laravel app to a locally running hub:
    php artisan watchtower:flush
    ```
 
+   Or use the built-in check, which reports a synthetic exception and flushes it in one step:
+
+   ```bash
+   php artisan watchtower:test-exception
+   ```
+
+   Pass `--no-flush` to buffer it without sending, letting the scheduled flush pick it up.
+
 6. Reload the hub dashboard for the site. The events should appear within a few seconds.
