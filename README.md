@@ -12,8 +12,8 @@ A Laravel package that buffers events (logs, exceptions, queue jobs, scheduled t
 Add the private repository to your `composer.json`:
 
 ```bash
-composer config repositories.watchtower-agent vcs git@github.com:131studios/watchtower-agent.git
-composer require 131studios/watchtower-agent
+composer config repositories.watchtower-agent vcs git@github.com:131StudiosWeb/watchtower-agent.git
+composer require 131studios/watchtower-agent:^0.3
 php artisan vendor:publish --tag=watchtower-config
 ```
 
