@@ -82,5 +82,6 @@ jobs:
       - name: Smoke check (install runtime deps, lint sources)
         if: matrix.smoke
         run: |
+          composer remove --dev --no-update pestphp/pest orchestra/testbench
           composer update --no-dev --prefer-dist --no-interaction --no-progress
           find src -name '*.php' -print0 | xargs -0 -n1 -P4 php -l
