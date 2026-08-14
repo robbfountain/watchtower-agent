@@ -42,7 +42,7 @@ class PayloadBuilder
             'heartbeat' => [
                 'php_version' => PHP_VERSION,
                 'laravel_version' => app()->version(),
-                'agent_version' => AgentServiceProvider::VERSION,
+                'agent_version' => AgentServiceProvider::version(),
             ],
             'queue_snapshots' => $this->queueSnapshots(),
             'schedule' => $this->schedule(),
