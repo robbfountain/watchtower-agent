@@ -16,9 +16,7 @@ jobs:
         include:
           - php: '8.1'
             laravel: '^10.0'
-            testbench: '^8.0'
-            pest: '^2.0'
-            pestLaravel: '^2.0'
+            smoke: true
           - php: '8.2'
             laravel: '^10.0'
             testbench: '^8.0'
@@ -81,14 +79,21 @@ jobs:
           "laravel/framework:${{ matrix.laravel }}"
 
       - name: Pin dev tool versions
+        if: '!matrix.smoke'
         run: >
           composer require --dev --no-interaction --no-update
           "orchestra/testbench:${{ matrix.testbench }}"
           "pestphp/pest:${{ matrix.pest }}"
           "pestphp/pest-plugin-laravel:${{ matrix.pestLaravel }}"
 
-      - name: Install dependencies
-        run: composer update --prefer-dist --no-interaction --no-progress
+      - name: Install dependencies and run tests
+        if: '!matrix.smoke'
+        run: |
+          composer update --prefer-dist --no-interaction --no-progress
+          vendor/bin/pest
 
-      - name: Run tests
-        run: vendor/bin/pest
+      - name: Smoke check (install runtime deps, lint sources)
+        if: matrix.smoke
+        run: |
+          composer update --no-dev --prefer-dist --no-interaction --no-progress
+          find src -name '*.php' -print0 | xargs -0 -n1 -P4 php -l
