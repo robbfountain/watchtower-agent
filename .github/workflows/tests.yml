@@ -1,0 +1,87 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Laravel 10 is EOL and its test toolchain (collision 8.4+ via any
+          # Pest with pest()) requires Laravel 11+, so it cannot run the suite.
+          # Verify it installs and the sources compile instead.
+          - php: '8.1'
+            laravel: '^10.0'
+            smoke: true
+          # Pest 4 requires PHP 8.3+, so the PHP 8.2 floor is exercised with Pest 3.
+          - php: '8.2'
+            laravel: '^11.0'
+            testbench: '^9.0'
+            pest: '^3.0'
+          - php: '8.3'
+            laravel: '^11.0'
+            testbench: '^9.0'
+            pest: '^4.0'
+          - php: '8.3'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            pest: '^4.0'
+          - php: '8.4'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            pest: '^4.0'
+          - php: '8.3'
+            laravel: '^13.0'
+            testbench: '^11.0'
+            pest: '^4.0'
+          - php: '8.4'
+            laravel: '^13.0'
+            testbench: '^11.0'
+            pest: '^4.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: Allow EOL Laravel installs (advisory block bypass, CI only)
+        if: matrix.laravel == '^10.0' || matrix.laravel == '^11.0'
+        run: composer config policy.advisories.block false
+
+      - name: Pin framework version
+        run: >
+          composer require --no-interaction --no-update
+          "laravel/framework:${{ matrix.laravel }}"
+
+      - name: Pin dev tool versions
+        if: '!matrix.smoke'
+        run: >
+          composer require --dev --no-interaction --no-update
+          "orchestra/testbench:${{ matrix.testbench }}"
+          "pestphp/pest:${{ matrix.pest }}"
+
+      - name: Install dependencies and run tests
+        if: '!matrix.smoke'
+        run: |
+          composer update --prefer-dist --no-interaction --no-progress
+          vendor/bin/pest
+
+      - name: Smoke check (install runtime deps, lint sources)
+        if: matrix.smoke
+        run: |
+          composer remove --dev --no-update pestphp/pest orchestra/testbench
+          composer update --no-dev --prefer-dist --no-interaction --no-progress
+          find src -name '*.php' -print0 | xargs -0 -n1 -P4 php -l
