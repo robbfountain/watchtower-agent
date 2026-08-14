@@ -14,49 +14,37 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Laravel 10 is EOL and its test toolchain (collision 8.4+ via any
+          # Pest with pest()) requires Laravel 11+, so it cannot run the suite.
+          # Verify it installs and the sources compile instead.
           - php: '8.1'
             laravel: '^10.0'
             smoke: true
-          - php: '8.2'
-            laravel: '^10.0'
-            testbench: '^8.0'
-            pest: '^4.0'
-            pestLaravel: '^4.0'
+          # Pest 4 requires PHP 8.3+, so the PHP 8.2 floor is exercised with Pest 3.
           - php: '8.2'
             laravel: '^11.0'
             testbench: '^9.0'
-            pest: '^4.0'
-            pestLaravel: '^4.0'
-          - php: '8.2'
-            laravel: '^12.0'
-            testbench: '^10.0'
-            pest: '^4.0'
-            pestLaravel: '^4.0'
+            pest: '^3.0'
           - php: '8.3'
             laravel: '^11.0'
             testbench: '^9.0'
             pest: '^4.0'
-            pestLaravel: '^4.0'
           - php: '8.3'
             laravel: '^12.0'
             testbench: '^10.0'
             pest: '^4.0'
-            pestLaravel: '^4.0'
-          - php: '8.3'
-            laravel: '^13.0'
-            testbench: '^11.0'
-            pest: '^4.0'
-            pestLaravel: '^4.0'
           - php: '8.4'
             laravel: '^12.0'
             testbench: '^10.0'
             pest: '^4.0'
-            pestLaravel: '^4.0'
+          - php: '8.3'
+            laravel: '^13.0'
+            testbench: '^11.0'
+            pest: '^4.0'
           - php: '8.4'
             laravel: '^13.0'
             testbench: '^11.0'
             pest: '^4.0'
-            pestLaravel: '^4.0'
 
     steps:
       - name: Checkout
@@ -84,7 +72,6 @@ jobs:
           composer require --dev --no-interaction --no-update
           "orchestra/testbench:${{ matrix.testbench }}"
           "pestphp/pest:${{ matrix.pest }}"
-          "pestphp/pest-plugin-laravel:${{ matrix.pestLaravel }}"
 
       - name: Install dependencies and run tests
         if: '!matrix.smoke'
