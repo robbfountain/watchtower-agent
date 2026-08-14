@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Watchtower\Agent;
 
+use Composer\InstalledVersions;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
+use OutOfBoundsException;
 use Monolog\Level;
 use Throwable;
 use Watchtower\Agent\Console\FlushCommand;
@@ -21,7 +23,24 @@ use Watchtower\Agent\Logging\BufferLogHandler;
 
 class AgentServiceProvider extends ServiceProvider
 {
-    public const VERSION = '0.3.0';
+    public const VERSION = '0.4.1';
+
+    public static function version(): string
+    {
+        if (class_exists(InstalledVersions::class)) {
+            try {
+                $installed = InstalledVersions::getPrettyVersion('131studios/watchtower-agent');
+
+                if ($installed !== null) {
+                    return ltrim($installed, 'v');
+                }
+            } catch (OutOfBoundsException) {
+                // Package not registered in the Composer runtime (e.g. path repo); fall back.
+            }
+        }
+
+        return self::VERSION;
+    }
 
     public function register(): void
     {

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Http;
+use Watchtower\Agent\AgentServiceProvider;
 use Watchtower\Agent\Buffer;
 use Watchtower\Agent\DatabaseSealer;
 
@@ -28,7 +29,7 @@ it('flushes the buffer to the hub and clears it on success', function () {
         return $request->url() === 'https://hub.test/api/agent/ingest'
             && $request->hasHeader('Authorization', 'Bearer test-token')
             && $request->hasHeader('Content-Encoding', 'gzip')
-            && $payload['heartbeat']['agent_version'] === '0.3.0'
+            && $payload['heartbeat']['agent_version'] === AgentServiceProvider::version()
             && count($payload['job_events']) === 1
             && count($payload['exceptions']) === 1
             && $payload['exceptions'][0]['count'] === 2
@@ -96,7 +97,7 @@ it('includes sealed database blobs in the flush when configured', function () {
     Http::assertSent(function ($request) {
         $payload = json_decode(gzdecode($request->body()), true);
 
-        return $payload['heartbeat']['agent_version'] === '0.3.0'
+        return $payload['heartbeat']['agent_version'] === AgentServiceProvider::version()
             && isset($payload['databases'])
             && count($payload['databases']) === 1;
     });
@@ -114,7 +115,7 @@ it('flushes request, cache, and notification sections in the wire format', funct
     Http::assertSent(function ($request) {
         $payload = json_decode(gzdecode($request->body()), true);
 
-        return $payload['heartbeat']['agent_version'] === '0.3.0'
+        return $payload['heartbeat']['agent_version'] === AgentServiceProvider::version()
             && $payload['request_metrics'][0]['count'] === 1
             && $payload['request_samples'][0]['type'] === 'error'
             && $payload['cache_metrics'][0]['hits'] === 1
