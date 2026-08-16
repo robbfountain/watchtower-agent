@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Watchtower\Agent;
 
+use DateTimeZone;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Queue;
 use Throwable;
@@ -210,9 +211,23 @@ class PayloadBuilder
             return collect(app(Schedule::class)->events())->map(fn ($event) => [
                 'command' => trim(str_replace([PHP_BINARY, "'artisan'", "''"], '', (string) ($event->command ?? $event->description ?? 'closure'))) ?: 'closure',
                 'expression' => $event->expression,
+                'timezone' => $this->eventTimezone($event->timezone),
             ])->values()->all();
         } catch (Throwable) {
             return [];
         }
+    }
+
+    private function eventTimezone(mixed $timezone): string
+    {
+        if ($timezone instanceof DateTimeZone) {
+            return $timezone->getName();
+        }
+
+        if (is_string($timezone) && $timezone !== '') {
+            return $timezone;
+        }
+
+        return (string) config('app.timezone', 'UTC');
     }
 }
