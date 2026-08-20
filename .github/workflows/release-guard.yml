@@ -1,0 +1,23 @@
+name: release guard
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    name: VERSION matches tag
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Assert AgentServiceProvider::VERSION matches the tag
+        run: php bin/assert-version.php "${GITHUB_REF_NAME}"

@@ -25,6 +25,9 @@
     "autoload-dev": {
         "psr-4": {"Watchtower\\Agent\\Tests\\": "tests/"}
     },
+    "scripts": {
+        "check-version": "php bin/assert-version.php"
+    },
     "extra": {
         "laravel": {"providers": ["Watchtower\\Agent\\AgentServiceProvider"]}
     },
