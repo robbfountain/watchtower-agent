@@ -4,16 +4,13 @@ A Laravel package that buffers events (logs, exceptions, queue jobs, scheduled t
 
 ## Requirements
 
-- PHP 8.3+
-- Laravel 11+
+- PHP 8.1+
+- Laravel 10, 11, 12, or 13
 
 ## Installation
 
-Add the private repository to your `composer.json`:
-
 ```bash
-composer config repositories.watchtower-agent vcs git@github.com:robbfountain/watchtower-agent.git
-composer require 131studios/watchtower-agent:^0.3
+composer require 131studios/watchtower-agent
 php artisan vendor:publish --tag=watchtower-config
 ```
 
