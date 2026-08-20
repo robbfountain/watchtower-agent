@@ -32,8 +32,9 @@ class FlushCommand extends Command
 
             for ($iteration = 0; $iteration < 10; $iteration++) {
                 $rows = $buffer->pull(1000);
+                $isHeartbeatOnly = $rows === [];
 
-                if ($rows === []) {
+                if ($isHeartbeatOnly && $iteration > 0) {
                     break;
                 }
 
@@ -68,6 +69,10 @@ class FlushCommand extends Command
 
                 $buffer->forget(array_column($rows, 'id'));
                 $totalFlushed += count($rows);
+
+                if ($isHeartbeatOnly) {
+                    break;
+                }
             }
 
             if ($totalFlushed > 0) {
