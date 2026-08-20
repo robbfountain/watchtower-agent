@@ -44,6 +44,31 @@ it('flushes the buffer to the hub and clears it on success', function () {
     expect(app(Buffer::class)->count())->toBe(0);
 });
 
+it('sends a heartbeat when the buffer is empty', function () {
+    Http::fake(['hub.test/*' => Http::response(['accepted' => true], 202)]);
+
+    $this->artisan('watchtower:flush')->assertSuccessful();
+
+    Http::assertSentCount(1);
+    Http::assertSent(function ($request) {
+        $payload = json_decode(gzdecode($request->body()), true);
+
+        return $payload['heartbeat']['agent_version'] === AgentServiceProvider::version()
+            && isset($payload['schedule'])
+            && ! isset($payload['job_events'])
+            && ! isset($payload['log_entries']);
+    });
+});
+
+it('does not send a trailing heartbeat after draining the buffer', function () {
+    Http::fake(['hub.test/*' => Http::response(['accepted' => true], 202)]);
+    seedBuffer();
+
+    $this->artisan('watchtower:flush')->assertSuccessful();
+
+    Http::assertSentCount(1);
+});
+
 it('keeps the buffer when the hub rejects or is unreachable', function () {
     Http::fake(['hub.test/*' => Http::response('error', 500)]);
     seedBuffer();

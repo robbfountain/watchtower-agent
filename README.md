@@ -67,6 +67,18 @@ If no key is configured, or if `WATCHTOWER_REPORT_DATABASES=false`, the database
 
 All hub communication happens in the flush command, which runs out of band on the scheduler. Every network call is wrapped in a try/catch. If the hub is unreachable, returns an error response, or the buffer file is unwritable, the failure is logged to your application log and the command exits with code 0. Your application's own request cycle is never touched.
 
+## Releasing
+
+The agent reports its version to the hub on every flush. It prefers the version Composer actually installed, falling back to `AgentServiceProvider::VERSION` when the Composer runtime cannot resolve the package (a path repository, for example). A stale constant therefore makes sites misreport, so bump it in the same commit as the release.
+
+Before tagging:
+
+```bash
+composer check-version v0.6.0
+```
+
+The `release guard` workflow runs the same check on every pushed `v*` tag and fails the release if the constant and the tag disagree.
+
 ## Local End-to-End Test
 
 To verify the full wire from a scratch Laravel app to a locally running hub:
