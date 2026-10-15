@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 use Watchtower\Agent\Buffer;
+use Watchtower\Agent\PackageCollector;
 use Watchtower\Agent\PayloadBuilder;
 
 class FlushCommand extends Command
@@ -16,7 +17,7 @@ class FlushCommand extends Command
 
     protected $description = 'Send buffered monitoring data to the Watchtower hub';
 
-    public function handle(Buffer $buffer, PayloadBuilder $builder): int
+    public function handle(Buffer $buffer, PayloadBuilder $builder, PackageCollector $packages): int
     {
         try {
             $hubUrl = (string) config('watchtower.hub_url');
@@ -39,6 +40,9 @@ class FlushCommand extends Command
                 }
 
                 $payload = $builder->build($rows);
+                $packagesHash = $payload['packages_hash'] ?? null;
+                unset($payload['packages_hash']);
+
                 $encoded = json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE);
 
                 if ($encoded === false) {
@@ -57,6 +61,11 @@ class FlushCommand extends Command
                     $buffer->forget(array_column($rows, 'id'));
                     error_log('watchtower-agent: hub rejected batch (422): '.substr($response->body(), 0, 500));
 
+                    if ($packagesHash !== null) {
+                        $packages->markSent($packagesHash);
+                        error_log('watchtower-agent: hub rejected a batch carrying packages; not resending this package list until it changes.');
+                    }
+
                     break;
                 }
 
@@ -69,6 +78,10 @@ class FlushCommand extends Command
 
                 $buffer->forget(array_column($rows, 'id'));
                 $totalFlushed += count($rows);
+
+                if ($packagesHash !== null) {
+                    $packages->markSent($packagesHash);
+                }
 
                 if ($isHeartbeatOnly) {
                     break;

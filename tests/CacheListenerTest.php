@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Cache;
 use Watchtower\Agent\Buffer;
+use Watchtower\Agent\PackageCollector;
 use Watchtower\Agent\PayloadBuilder;
 
 it('records cache operations', function () {
@@ -31,4 +32,12 @@ it('rolls cache ops into per-store minute metrics', function () {
         ->and($payload['cache_metrics'][0]['misses'])->toBe(1)
         ->and($payload['cache_metrics'][0]['writes'])->toBe(1)
         ->and($payload['cache_metrics'][0]['forgets'])->toBe(0);
+});
+
+it('does not record the agent own packages hash cache traffic', function () {
+    Cache::put(PackageCollector::CACHE_KEY, 'abc', 60);
+    Cache::get(PackageCollector::CACHE_KEY);
+    Cache::forget(PackageCollector::CACHE_KEY);
+
+    expect(app(Buffer::class)->pull(20))->toBe([]);
 });

@@ -97,6 +97,17 @@ class PayloadBuilder
             $payload['databases'] = $databases;
         }
 
+        try {
+            $pendingPackages = app(PackageCollector::class)->pending();
+
+            if ($pendingPackages !== null) {
+                $payload['packages'] = $pendingPackages['packages'];
+                $payload['packages_hash'] = $pendingPackages['hash'];
+            }
+        } catch (Throwable $throwable) {
+            error_log("watchtower-agent: packages skipped, collector failed: {$throwable->getMessage()}");
+        }
+
         return $payload;
     }
 
