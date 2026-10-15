@@ -65,7 +65,7 @@ If no key is configured, or if `WATCHTOWER_REPORT_DATABASES=false`, the database
 
 ## Installed Packages
 
-On each flush the agent reads `vendor/composer/installed.json` and `composer.json` and sends the installed package list (name, version, whether it is a direct requirement, and whether it is a dev package) to the hub. The list is only sent when it changes, and at least once every 24 hours otherwise. The last sent state is kept in the application cache, so with the `array` cache driver the list is sent on every flush. The hub audits the list against Packagist security advisories.
+On each flush the agent reads `vendor/composer/installed.json` and `composer.json` and sends the installed package list (name, version, whether it is a direct requirement, and whether it is a dev package) to the hub. The list is only sent when it changes, and at least once every 24 hours otherwise. The last sent state is kept in the application cache, so with the `array` or `null` cache driver the list is sent on every flush. The hub audits the list against Packagist security advisories.
 
 If the files cannot be read or parsed, the packages section is left out of the payload and the reason goes to `error_log`. The rest of the flush is unaffected.
 

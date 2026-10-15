@@ -6,6 +6,7 @@ namespace Watchtower\Agent\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
 use Watchtower\Agent\AgentServiceProvider;
+use Watchtower\Agent\PackageCollector;
 
 abstract class TestCase extends Orchestra
 {
@@ -27,5 +28,21 @@ abstract class TestCase extends Orchestra
 
         @mkdir(__DIR__.'/tmp');
         @unlink(__DIR__.'/tmp/buffer.sqlite');
+
+        $this->app->instance(PackageCollector::class, new PackageCollector($this->packageFixtureDirectory()));
+    }
+
+    private function packageFixtureDirectory(): string
+    {
+        $directory = __DIR__.'/tmp/package-fixture';
+        @mkdir("{$directory}/vendor/composer", 0777, true);
+
+        file_put_contents("{$directory}/vendor/composer/installed.json", json_encode([
+            'packages' => [['name' => 'laravel/framework', 'pretty_version' => 'v13.0.0']],
+            'dev-package-names' => [],
+        ]));
+        file_put_contents("{$directory}/composer.json", json_encode(['require' => ['laravel/framework' => '^13.0']]));
+
+        return $directory;
     }
 }
