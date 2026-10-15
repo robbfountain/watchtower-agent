@@ -63,6 +63,12 @@ The agent only reports a connection it can actually open. Before sealing, it ver
 
 If no key is configured, or if `WATCHTOWER_REPORT_DATABASES=false`, the databases section is omitted entirely from the flush payload. Sealing failures degrade gracefully to an `error_log` entry and never interrupt the flush or the application.
 
+## Installed Packages
+
+On each flush the agent reads `vendor/composer/installed.json` and `composer.json` and sends the installed package list (name, version, whether it is a direct requirement, and whether it is a dev package) to the hub. The list is only sent when it changes, and at least once every 24 hours otherwise. The last sent state is kept in the application cache, so with the `array` cache driver the list is sent on every flush. The hub audits the list against Packagist security advisories.
+
+If the files cannot be read or parsed, the packages section is left out of the payload and the reason goes to `error_log`. The rest of the flush is unaffected.
+
 ## Never-Hurt-the-Site Guarantee
 
 All hub communication happens in the flush command, which runs out of band on the scheduler. Every network call is wrapped in a try/catch. If the hub is unreachable, returns an error response, or the buffer file is unwritable, the failure is logged to your application log and the command exits with code 0. Your application's own request cycle is never touched.
