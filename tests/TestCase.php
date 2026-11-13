@@ -20,6 +20,7 @@ abstract class TestCase extends Orchestra
         $app['config']->set('watchtower.hub_url', 'https://hub.test');
         $app['config']->set('watchtower.token', 'test-token');
         $app['config']->set('watchtower.buffer.path', __DIR__.'/tmp/buffer.sqlite');
+        $app['config']->set('watchtower.flush.jitter_seconds', 0);
     }
 
     protected function setUp(): void
@@ -28,6 +29,8 @@ abstract class TestCase extends Orchestra
 
         @mkdir(__DIR__.'/tmp');
         @unlink(__DIR__.'/tmp/buffer.sqlite');
+        $lockPath = __DIR__.'/tmp/buffer.sqlite.lock';
+        is_dir($lockPath) ? @rmdir($lockPath) : @unlink($lockPath);
 
         $this->app->instance(PackageCollector::class, new PackageCollector($this->packageFixtureDirectory()));
     }

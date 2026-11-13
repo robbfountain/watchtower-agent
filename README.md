@@ -25,6 +25,8 @@ WATCHTOWER_TOKEN=your-site-token
 
 The flush command registers itself on Laravel's scheduler automatically every minute. No additional scheduler entry is required beyond the standard `* * * * * php artisan schedule:run` cron.
 
+Each flush takes a per-host lock beside the buffer file (`<buffer path>.lock`), so two flushes on one host never overlap. A flush that finds the lock held logs it and skips. If the lock file cannot be opened or locked, the flush runs without it.
+
 ## Config Reference
 
 | Key | Environment Variable | Default | Description |
@@ -43,6 +45,8 @@ The flush command registers itself on Laravel's scheduler automatically every mi
 | `features.requests` | n/a | `true` | Capture HTTP request metrics and slow requests. |
 | `features.cache` | n/a | `true` | Capture cache operations and hits/misses. |
 | `features.notifications` | n/a | `true` | Capture notification send events and delivery status. |
+| `flush.max_batch_bytes` | `WATCHTOWER_FLUSH_MAX_BATCH_BYTES` | `1000000` | Maximum encoded size of one flush request. Larger batches are halved, and a single row over the limit is dropped and logged. |
+| `flush.jitter_seconds` | `WATCHTOWER_FLUSH_JITTER_SECONDS` | `40` | Upper bound of a random delay before each scheduled flush, so sites do not all hit the hub at second 0. Clamped to 50. Set `0` to disable. `php artisan watchtower:flush --now` skips it. |
 | `slow_threshold_ms` | `WATCHTOWER_SLOW_THRESHOLD_MS` | `1000` | Request duration threshold (milliseconds) for marking as slow. |
 | `auto_schedule_flush` | n/a | `true` | Register the flush command on the scheduler automatically. |
 | `sealing_public_key` | `WATCHTOWER_SEALING_PUBLIC_KEY` | `null` | Hub public key (base64) for sealing database credentials. Obtain from the hub Databases page. |
@@ -68,6 +72,10 @@ If no key is configured, or if `WATCHTOWER_REPORT_DATABASES=false`, the database
 On each flush the agent reads `vendor/composer/installed.json` and `composer.json` and sends the installed package list (name, version, whether it is a direct requirement, and whether it is a dev package) to the hub. The list is only sent when it changes, and at least once every 24 hours otherwise. The last sent state is kept in the application cache, so with the `array` or `null` cache driver the list is sent on every flush. The hub audits the list against Packagist security advisories.
 
 If the files cannot be read or parsed, the packages section is left out of the payload and the reason goes to `error_log`. The rest of the flush is unaffected.
+
+## Payload Limits
+
+Captured log messages are cut at 16384 characters, log context at 8192 bytes, and context nesting at 8 levels, so one noisy entry cannot bloat a batch. Rows the hub cannot accept (a single row over `flush.max_batch_bytes`, or one the hub still answers with 413) are dropped and logged, never resent, and do not block the rows behind them.
 
 ## Never-Hurt-the-Site Guarantee
 

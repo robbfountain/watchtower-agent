@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Console\Scheduling\Schedule;
 use Watchtower\Agent\AgentServiceProvider;
 
 it('merges package config', function () {
@@ -14,4 +15,18 @@ it('resolves a non-empty agent version without a leading v', function () {
 
     expect($version)->toBeString()->not->toBe('')
         ->and($version)->not->toStartWith('v');
+});
+
+it('schedules the flush every minute in the background', function () {
+    $event = collect(app(Schedule::class)->events())
+        ->first(fn ($event) => str_contains((string) $event->command, 'watchtower:flush'));
+
+    expect($event)->not->toBeNull()
+        ->and($event->expression)->toBe('* * * * *')
+        ->and($event->runInBackground)->toBeTrue()
+        ->and($event->withoutOverlapping)->toBeFalse();
+});
+
+it('declares the 0.7.0 version', function () {
+    expect(AgentServiceProvider::VERSION)->toBe('0.7.0');
 });

@@ -23,7 +23,7 @@ use Watchtower\Agent\Logging\BufferLogHandler;
 
 class AgentServiceProvider extends ServiceProvider
 {
-    public const VERSION = '0.6.0';
+    public const VERSION = '0.7.0';
 
     public static function version(): string
     {
@@ -79,7 +79,7 @@ class AgentServiceProvider extends ServiceProvider
 
         if ($this->app['config']->get('watchtower.auto_schedule_flush')) {
             $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
-                $schedule->command('watchtower:flush')->everyMinute();
+                $schedule->command('watchtower:flush')->everyMinute()->runInBackground();
             });
         }
 

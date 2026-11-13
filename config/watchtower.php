@@ -21,6 +21,10 @@ return [
         'cache' => true,
         'notifications' => true,
     ],
+    'flush' => [
+        'max_batch_bytes' => (int) env('WATCHTOWER_FLUSH_MAX_BATCH_BYTES', 1_000_000),
+        'jitter_seconds' => (int) env('WATCHTOWER_FLUSH_JITTER_SECONDS', 40),
+    ],
     'slow_threshold_ms' => (int) env('WATCHTOWER_SLOW_THRESHOLD_MS', 1000),
     'auto_schedule_flush' => true,
     'sealing_public_key' => env('WATCHTOWER_SEALING_PUBLIC_KEY'),

@@ -61,3 +61,17 @@ it('container resolves the buffer as a singleton with config values', function (
     expect(app(Buffer::class))->toBe(app(Buffer::class))
         ->and(app(Recorder::class))->toBeInstanceOf(Recorder::class);
 });
+
+it('pulls only rows up to a given id', function () {
+    $buffer = makeBuffer();
+
+    foreach (range(1, 5) as $n) {
+        $buffer->push('job_event', ['n' => $n]);
+    }
+
+    $thirdId = $buffer->pull(10)[2]['id'];
+    $rows = $buffer->pullThrough($thirdId, 1000);
+
+    expect($rows)->toHaveCount(3)
+        ->and(array_column($rows, 'payload'))->toBe([['n' => 1], ['n' => 2], ['n' => 3]]);
+});
