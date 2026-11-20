@@ -27,6 +27,6 @@ it('schedules the flush every minute in the background', function () {
         ->and($event->withoutOverlapping)->toBeFalse();
 });
 
-it('declares the 0.7.0 version', function () {
-    expect(AgentServiceProvider::VERSION)->toBe('0.7.0');
+it('declares the 0.7.1 version', function () {
+    expect(AgentServiceProvider::VERSION)->toBe('0.7.1');
 });
